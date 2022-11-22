@@ -1,0 +1,792 @@
+---
+title: "World Happiness Prediction Models"
+subtitle: 'HarvardX (edX) Data Science Professional Certificate: PH125.9x CYO Capstone'
+author: "Michael A Hovey"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    df_print: kable
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+    fig_width: 8
+    fig_height: 5
+    fig_caption: yes
+  html_document: default
+fontsize: 12pt
+include-before: '`\newpage{}`{=latex}'
+urlcolor: red
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                      fig.align="center", fig.pos = "H", out.width="70%", 
+                      tidy.opts = list(width.cutoff=60), tidy = TRUE)
+```
+
+\newpage
+# Introduction 
+
+## Background
+
+The _World Happiness Report 2021_ (hereafter, WHR) is the focus of my assigned project (HarvardX (edX) Data Science Professional Certificate: PH125.9x Choose Your Own Capstone project). 
+
+
+Background:  The member states of the United Nations, through its Sustainable Development Solutions Network (SDSN) launched in 2012, has begun the process of quantifying happiness in each country around the world, in an effort to collect information that will help achieve the Sustainable Development Goals (SDGs) of the 21st Century. This process is known as The World Happiness Report, and a new report is scheduled to arrive every year for the foreseeable future.
+
+To the United Nations, quantifying happiness involves measuring and aggregating 6 explanatory factors. The aggregate of these factors is known as the "Happiness Score". The 6 explanatory factors that the UN has agreed upon are:
+
+GDP per capita
+Social support
+Healthy life expectancy
+Freedom to make life choices
+Generosity
+Perception of curruption.
+
+The UN has chosen these factors because the most current research has shown that these 6 factors most accurately explain national-level differences in life evaluations. The 6 factors are not meant to be interpreted as specific causal agents, but rather to be understood as proven correlates to the happiness and well-being of a nation. They are seen as trusted metrics in the emerging science of happiness and well-being. 
+
+## Dataset Description
+
+The dataset used for this project is available from the kaggle website (data science learning and information ) at www.kaggle.com.  This dataset contains the happiness score of 149 countries around the world paired with various versions of six additional factors for a total of 20 variables (columns) including the name of the nation and its corresponding global region. 
+
+The variables that contribute to the happiness score estimate the extent to which each of six factors contribute to making perceptions of happiness higher in each country than they are in Dystopia, a hypothetical country that has values equal to the lowest national averages for each of the six factors.  Dystopia_residual, which is something of a seventh variable, values have no impact on the total happiness score reported for each country.  They do, however, explain why some nations rank higher than others when listed in rank order.  In short, the higher value of each of variable and the resulting happiness score, the _happier_ the nation.
+
+## Project Goal and Key Steps
+
+The purpose of this project is to determine which _happiness_ factors are more important (correlated) to living a happier life in the context of the nations and regions where people live. In addition, we will explore several machine learning algorithms (models) that can be used to predict happiness scores and compare those models to determine which algorithm is best (or better) suited for use as a prediction tool from datasets like the WHR. 
+
+Key steps will include loading and tidying the dataset, exploring and visualizing the data, developing and testing multiple prediction models, and assessing the results and model performance.  
+
+# Methods and Analysis
+
+## Prepare the Analytical Environment (RStudio)
+
+In order to conduct the necessary analysis and visualizations, a number of R packages will need to be installed and loaded.  The packages and libraries included here are the usual pallet or tools I find necessary in my almost daily worklife.  There may indeed be other packages that more elegantly accomplish the tasks at hand; nevertheless, these are the packages I most frequently use.  
+
+```{r load_pkgs_libs, eval=TRUE, echo=FALSE, message=FALSE, warning = FALSE}
+# Install necessary packages
+if(!require(plyr)) install.packages("plyr", repos = "http://cran.us.r-project.org")
+if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.org")
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
+if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
+if(!require(stringr)) install.packages("stringr", repos = "http://cran.us.r-project.org")
+if(!require(knitr)) install.packages("knitr", repos = "http://cran.us.r-project.org")
+if(!require(kableExtra)) install.packages("kableExtra", repos = "http://cran.us.r-project.org")
+if(!require(scales)) install.packages("scales", repos = "http://cran.us.r-project.org")
+if(!require(DescTools)) install.packages("DescTools", repos = "http://cran.us.r-project.org")
+if(!require(tinytex)) install.packages("tinytex", repos = "http://cran.us.r-project.org")
+if(!require(caTools)) install.packages("caTools", repos = "http://cran.us.r-project.org")
+if(!require(ggplot2)) install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+if(!require(ggrepel)) install.packages("ggrepel", repos = "http://cran.us.r-project.org")
+if(!require(ggthemes)) install.packages("ggthemes", repos = "http://cran.us.r-project.org")
+if(!require(reshape2)) install.packages("reshape2", repos = "http://cran.us.r-project.org")
+if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
+if(!require(tidyr)) install.packages("tidyr", repos = "http://cran.us.r-project.org")
+if(!require(corrgram)) install.packages("corrgram", repos = "http://cran.us.r-project.org")
+if(!require(corrplot)) install.packages("corrplot", repos = "http://cran.us.r-project.org")
+if(!require(formattable)) install.packages("formattable", repos = "http://cran.us.r-project.org")
+if(!require(cowplot)) install.packages("cowplot", repos = "http://cran.us.r-project.org")
+if(!require(ggpubr)) install.packages("ggpubr", repos = "http://cran.us.r-project.org")
+if(!require(neuralnet)) install.packages("neuralnet", repos = "http://cran.us.r-project.org")
+# Load necessary libraries 
+library(plyr)
+library(dplyr)
+library(tidyverse)
+library(caret)
+library(lubridate)
+library(stringr)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(DescTools)
+library(tinytex)
+library(caTools)
+library(ggplot2)
+library(ggrepel)
+library(ggthemes)
+library(reshape2)
+library(data.table)
+library(tidyr)
+library(corrgram)       
+library(corrplot)
+library(formattable)
+library(cowplot)
+library(ggpubr)
+library(neuralnet)
+```
+
+## Load Data
+```{r data_acquisiton_load, echo=TRUE, eval=TRUE, message = FALSE, warning = FALSE}
+ 
+# Original source file:
+# World Happiness Report 2021 (www.kaggle.com)
+# Specific file: https://www.kaggle.com/ajaypalsinghlo/world-happiness-report-2021
+#Acquire / load data
+# whr21 <- read_csv("world-happiness-report-2021.csv")
+library(readr)
+urlfile="https://raw.githubusercontent.com/mihovey/cyo_capstone/main/world-happiness-report-2021.csv"
+whr21<-read_csv(url(urlfile))
+rm(urlfile)
+```
+
+## Review Raw Data Structure
+
+A cursory review of the data set reveals of the dataset contains `r nrow(whr21)` observations (rows) and `r ncol(whr21)` variables (columns).  The variable names are a bit unwieldy for our purposes or visualizing and tabulating our data. In fact, the whole of the table cannot be legibly displayed or summarized:
+
+```{r review_head, message=FALSE, warning=FALSE}
+#Review list of column names, row count, and column count
+head(whr21) %>%
+  kable(caption = "Impossible to read: Structure of Happiness Dataset", align = 'ccclll', booktabs = T,
+       format = "latex", linesep = "") %>%
+  row_spec(1, hline_after = T) %>%
+  kable_styling(full_width = FALSE, position = "center", latex_options = c("scale_down", "H"))
+```
+
+To make this cursory review easier, here is a look at the column names and count and the observation count:
+
+Number of columns (variables):  `r nrow(whr21)`
+
+Number of rows (observations:)  `r ncol(whr21)` 
+
+Column # and Column Name
+```{r review_col_names, message=FALSE, warning=FALSE}
+#Review list of column names
+colnames(whr21)
+```
+
+Obviously, there are variables used to calculate other variable and many of them are not relevant to our analysis.  Also, the variable names are a bit unwieldy for our purposes of visualizing and tabulating our data.This glimpse into the structure of our dataset makes clear that we will need to tidy this dataset before beginning any meaningful analysis.
+
+## Clean the Data
+
+Now that we have loaded and reviewed our dataset's structure, the dataset appears relatively clean; but, we will need to make three significant adjustments to allow the data to work in our visualizing and tabulating efforts.  First, we will remove the columns not relevant to our study.  Next, we will rename the remaining columns to be more meaningful and a better "fit". Finally, we convert the Region variable from *character* to *factor*.
+
+
+```{r clean_data, message = FALSE, warning = FALSE, echo=TRUE}
+# Delete unnecessary columns
+whr21 <- whr21[, -c(4,5,6,7,8,9,10,11,12,13,20)]
+# Change  the name of the remaining  variables (columns)
+colnames (whr21) <- c("Nation", "Region", "Happiness",
+                          "Prosperity", "Network", "Wellbeing", "Freedom",
+                          "Generosity", "Corruption")
+# Convert Region to a *factor* from *character*
+whr21$Region <- as.factor(whr21$Region)
+```
+
+The cleaned and tidied dataset is far easier to read and review. Our tidied dataset means we are now ready to proceed with our analysis. Now we see the final structure of our dataset consists of `r nrow(whr21)` observations and `r ncol(whr21)` variables. Region is reframed as a factor variable and the remaining variables are in numeric form.  This configuration situates us nicely to proceed with our analysis.
+
+```{r variable_list, message=FALSE, warning=FALSE}
+#Review list of variables and first 6 rows
+head(whr21) %>%
+  kable(caption = "Tidied Structure of Happiness Dataset (First Six Rows)", align = 'llrrrrrrrr', booktabs = T,
+       format = "latex", linesep = "") %>%
+  #row_spec(1, hline_after = T) %>%
+  kable_styling(full_width = FALSE, position = "center", latex_options = c("scale_down", "H"))
+```
+
+For reference and clarity, the following table lists the new column names, the original name (as given in the dataset), and then a description of the information conveyed: 
+
+| New Column Name | Original Column Name           | Description
+|-----------------|--------------------------------|------------------------------------------------|
+| Nation          | Country name                   | Names of nations reporting the observations.
+|-----------------|--------------------------------|------------------------------------------------|
+| Region          | Regional indicator             | Loosely correlates to the geographic groupings (not exactly by continent) or grouping of similarly situated countries where geography doesn't serve.
+|-----------------|--------------------------------|------------------------------------------------|
+| Happiness | Ladder score                   | Rating or measure of happiness on a scale of 0 to 10.
+|-----------------|--------------------------------|------------------------------------------------|
+|                 | Explained by...                | 
+| Prosperity      | Log GDP per capita             | GDP (gross domestic product) is the dollar value of goods and services produced a nation in a given year.  Per capita GDP is a calculated measure of GDP divided by the nation's population (count). Per capita GDP is a common and useful measure used to compare countries as provides a normalized (per individual) standard measure.
+|-----------------|--------------------------------|------------------------------------------------|
+| Network         | Social support                 | Means having friends and other people, including family, to turn to in times of need or crisis to give you a broader focus and positive self-image. Social support enhances quality of life and provides a buffer against adverse life events.
+|-----------------|--------------------------------|------------------------------------------------|
+| Wellbeing      | Healthy life expectancy        | The cumulative impact of personal health and social constructs that determine how long an individual will live.
+|-----------------|--------------------------------|------------------------------------------------|
+| Freedom         | Freedom to make life choices   | The degree of freedom the citizens of a country hold in terms of making their own life decisions without government involvement.
+|-----------------|--------------------------------|------------------------------------------------|
+| Generosity      | Generosity                     | Generosity is a quality that's a lot like unselfishness. Someone showing generosity is happy to give time, money, food, or kindness to people in need. 
+| Corruption      | Perceptions of corruption      | The degree to which dishonest or fraudulent conduct by those in power impacts everyday life of a nation's citizens.
+|-----------------|--------------------------------|------------------------------------------------|
+| Dystopia+       | Dystopia + residual            | Dystopia, a hypothetical country that has values equal to the world’s lowest national averages for each of the six factors, is combined with Residuals to serve  as a leveling factor that is not absolute zero which would be erroneously low. The Happiness Score depicts the difference between the measured Nation and Dystopia.  
+
+\newpage
+## Exploratory Data Analysis and Visualization
+
+### Orientation to the Dataset
+
+Happiness (whr21$Happiness) of our happiness dataset is the variable that we hope to train our algorithm to predict from individual or combinations of numeric variables (Prosperity, Network, Wellbeing, Freedom, Generosity, Corruption, and Dystopia+).  In that sense, Happiness is also our dependent variable.  The remaining numeric variables are the inputs that influence Happiness.  Thus, the numeric variables are our independent variables.  This perspective of the data set indicates that we will be looking for associations (correlations) between Happiness and the numeric variables as well as combinations of numeric variables.  As such, we will begin our data exploration by first considering correlation and regression aspects of the variables.
+
+The dataset contains `r nrow(whr21)` unique values in the Nation variable meaning that each row or observation represents the values for a single nation.  As such, Nation will not serve as our primary grouping factor for comparison.  Region, however, will serve somewhat better. The `r nrow(whr21)` Nations have been sorted by the dataset's author into 10 groups roughly based on 1) geography (not exactly continents), 3) similarly situated in terms of their social and geo-political constructs, or 3) a combination of both.  Therefore, we will use Region as our primary grouping key where the Nation variable does not serve. 
+
+Also note that there is an "adjustment factor" included in the data set known as the Dystopian Ladder Score.  This is the score of that fictitious, lowest-scoring Nation.  The value the Dystopian Ladder Score is 2.430 and that value is assigned Nation as well as accounted for in each Nation's overall score.  We will use this score in the simplest of our models to be evaluated.
+
+```{r eda_table_1, message=FALSE, warning=FALSE, echo = FALSE}
+# Create table to show class of variables, structure and final rows
+rbind((lapply(whr21, class)), head(whr21)) %>%
+  kable(caption = "Variables, Variable Class, and First Six Observations", 
+        align = 'cclllllll', booktabs = T,
+        format = "latex", linesep = "") %>%
+  row_spec(1, hline_after = T) %>%
+  kable_styling(full_width = FALSE, position = "center", latex_options = c("scale_down", "H"))
+```
+
+### Data Visualization
+In this section, we begin to further explore the data set by examining it from various visual perspectives including tabular and graphical representations.
+
+#### Broadest Overview:  Distributions of Happiness
+
+Perhaps the broadest visual representation of the data set is to examine the number of ratings that fall into each whole number score category (i.e., 3, 4, 5, etc.).  
+```{r dist_happiness_1, message=FALSE, warning=FALSE, fig.cap="Distribution of Happiness Score (whole point)"}
+# Visualize distribution of Happiness
+whr21 %>% ggplot(aes(x = Happiness, y = ..density..)) +
+  geom_histogram(alpha = 0.5, binwidth = 1.0, color = ("grey40"), fill = ("skyblue2")) +
+  geom_density(size = 1.0, color = "blue") +
+  scale_y_continuous(breaks = c(10, 20, 30, 40, 50, 60), labels = c("10", "20", "30", "40", "50", "60")) +
+  scale_x_continuous() +
+  labs(x = "Happiness Score (0 to 10)", y = "Number of Ratings", caption = "World Happiness Report - 2021 ")
+```
+
+
+```{r dist_hapiness_2, message=FALSE, warning=FALSE, fig.cap="Distribution of Happiness Score (tenth point)"}
+# Visualize distribution of Happiness but more granular...
+whr21 %>% ggplot(aes(x = Happiness, y = ..density..)) +
+  geom_histogram(alpha = 0.5, binwidth = 0.1, color = ("grey40"), fill = ("skyblue2")) +
+  geom_density(size = 1.5, color = "blue") +
+  scale_y_continuous(breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9), labels = c("1", "2", "3", "4", "5", "6", "7", "8", "9")) +
+  scale_x_continuous() +
+  labs(x = "Happiness Score (Possible Range:  0 to 10)", y = "Number of Ratings", caption = "World Happiness Report - 2021 ")
+```
+
+As the Figure 1 and 2 distribution graphics demonstrate, our data _**roughly**_ follow a Normal or Gaussian distribution (refer to the dark blue plot lines in the figures above.  This will be an important point later as we various prediction models that rely on these distributions: Generalized Linear Model (glm) and  Multiple Linear Model (lm) which can be considered a special case of the glm.
+
+Briefly, the difference between a generalized linear model and the linear model in R is about the data's distribution.  We assume when we use a lm() in R that our data follow a specific distribution: Normal or Gauss distribution.  Other hand, when using  glm() in R, we can specify the data's distribution with the parameters, in most of cases Binomial. glm is an easy way to achieve a linear model when your data don't necessarily follow a Gaussian distribution.
+
+#### Broad Overview of Correlations Between Variables
+
+We can understand the relationship among and between the various numeric variables by examining their statistical correlations.  
+
+```{r correlation_mixed, fig.cap="Correlation", message=FALSE, warning=FALSE}
+# Correlation between variables
+# Finding the correlation between numerical columns
+Num.cols <- sapply(whr21, is.numeric)
+corr_data <- cor(whr21[, Num.cols])
+corrplot.mixed(corr_data, lower = "number", upper = "pie", tl.col = "black", tl.cex = 0.65)
+```
+
+Figure 3 demonstrates that correlations between the numeric variables of our data set. The figure indicates that all of the variables, except Generosity, are highly correlated ranging from 0.4 to 0.86 correlation coefficients.  Generosity, however, is mildly correlated to the other variables and generally in the negative direction.  Generosity may be a useful variable to remove when attempting to tune or improve our prediction algorithm.  
+
+#### Overview of Happiness by Region
+
+```{r desc_stat_region,  fig.align = "center", message = F, warning = F, fig.cap="Summary: Descriptive Statistics of Happiness Score by Region"}
+# Happiness score summary stats by Region
+gg_stats_table_1 <- desc_statby(whr21, measure.var = "Happiness",
+                      grps = "Region")
+gg_stats_table_1 <- gg_stats_table_1[, c("Region","mean","median", "max", "min")]
+names(gg_stats_table_1) <- c("Region", "Mean","Median", "Maximum", "Minimum")
+# Summary table
+gg_stats_table1.p <- ggtexttable(gg_stats_table_1,rows = NULL, 
+                         theme = ttheme("classic"))
+gg_stats_table1.p
+```
+
+Figure 4 provides a tabular view of the mean and median Happiness scores by Region.  Noticeably, means are reasonably similar to means indicating that extreme values are limited.  However, there is quite a range between the highs and lows of the maximum and minimum value indicating that some Regions could have a significant spread in their respective ranges.
+
+```{r box_scatter_region, fig.align = "center", fig.cap="Visual Summary: Happiness Score by Region (Boxplot and Scatterplot)", message = F, warning = F}
+# Happiness score plots by Region
+# I have left my various experimentations with visual appearances here for your reference.  These were my musings and attempts to achieve a legible graphic.
+gg_plot_scatter <- ggplot(whr21,
+              aes(x=Region,
+                  y=Happiness,
+                  color=Region)) + 
+  geom_point() + theme() +
+  theme(legend.position = "right") +
+  theme(legend.text = element_text(size = 12)) +
+  #theme(axis.text.x = element_text(angle=90)) +
+  #theme(axis.text.x = element_blank()) +
+  #theme(legend.title = element_blank()) +
+  #theme(axis.ticks = element_blank()) +
+  theme(legend.position = "none") +
+  theme(axis.title = element_text(size = 14)) +
+  xlab("Region") + ylab("Happiness") +
+  geom_point(stat = "identity") +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))
+gg_plot_box <- ggplot(whr21 , aes(x = Region, y = Happiness)) +
+  geom_boxplot(aes(fill=Region)) + theme() +
+  theme(legend.position = "right") +
+  theme(legend.text = element_text(size = 12)) +
+  #theme(axis.text.x = element_text(angle = 90)) +
+  #theme(axis.text.x = element_blank()) +
+  #theme(legend.title = element_blank()) +
+  theme(legend.position = "none") +
+  theme(axis.title = element_text(size = (14))) + 
+  xlab("Region") + ylab("Happiness") +
+  #geom_boxplot(stat = "identity") +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))
+# Arrange report grid
+ggarrange(gg_plot_scatter, gg_plot_box, ncol = 1, nrow = 2)
+```
+
+Figure 5 contains a Box and Scatter plot combined to visually demonstrate the range spread  between min and max (scatter plot) as well as the five-number summary of the box plot (i.e., minimum, first quartile, median, third quartile, and maximum). Notably, several regions have a wide range (e.g., Middle East and North Africa, South Asia, Western Europe, and Sub-Saharan Africa) while North America and ANZ (Australia and New Zeland) have a very compact range.  
+
+#### Composite Comparison of All Variables by Region
+
+```{r composite_grid, message = F, warning = F, fig.height=15, fig.width=11, fig.cap="Comparison of All Variables by Region"}
+# Prepare data for composite melt
+whr21.region <- whr21 %>%
+                          select(-0) %>%
+                          group_by(Region) %>%
+                          summarize_at(vars(-Nation), funs(mean(., na.rm=TRUE)))
+# Melt the "whr21.Region" dataset
+whr21.region.melt <- melt(whr21.region)
+# Facet melted dataset
+ggplot(whr21.region.melt, aes(y=value, x=Region, color=Region, fill=Region)) + 
+  geom_bar( stat="identity") +    
+  facet_wrap(~variable) + theme_bw() +
+  theme(strip.text.x = element_text(size = 24)) +
+  theme(axis.text.x = element_text(size = 18)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(axis.title = element_text(size = (24))) + 
+  theme(legend.position = "none") +
+  theme(legend.text = element_text(size = 18)) +
+  labs(y = "Average Score") 
+```
+
+Figure 6 depicts each Region's score by each variable in the WHR.  As expected given the highly correlated values, we see spikes for North America and ANZ and Western Europe in each variable and corresponding lows for Southeast Asia and Sub-Saharan Africa.  These patterns hold, relatively, for each Region and each variable pair.  
+
+In summary, the WHR provides a data set with a dependent variable (Happiness) that roughly follows a normal distribution.  The independent variables are highly correlated with one exception (Generosity).  There is a wide range of variability between Regions and within each variable's values.  As such, this data set lends itself to the development of algorithms to predict the values of Nations absent from the data set of future Nations as this world evolves. 
+
+\newpage
+## Development Methods for Multiple Models of Prediction
+
+Root Mean Square Error (RMSE) is the standard deviation of the residuals (prediction errors). Residuals are a measure of how far from (or near to) the regression line the individual data points fall.  In other words, RMSE is a measure of how spread out these residuals are. RMSE can tell us how concentrated the data are around the line of best fit. For this reason, RMSE is commonly used in climatology, forecasting, and regression analysis to verify experimental results. We will use RMSE as our methodology to train and test our models for accuracy in predictions.  
+
+### Maching Learning Model Development
+
+With our training and testing subsets prepared and set aside, we will begin to develop nine (9) machine learning algorithms and determine the effectiveness of each in predicting future Happiness scores. For the purpose of having a reference point, we have set a Project Target RMSE of 1.0000 meaning that our goal is to produce a ML algorithm that predicts RMSE of 1.0000 or less or within 1.0000 points of the actual Happiness score.  
+
+Note, the first two models are simple, calculated models based on the whole of the dataset and do not rely on training and testing subsets.  As such, we will address the appropriate split ratio prior to the development of the linear models and others.
+
+#### Simple Average Method
+
+The simplest method for predicting ratings based on a known set of values from a dataset is to assume that every observation (Nation in this case) has the same Happiness Score. The actual rating for movie $i$ by user $u$, $Y_{u,i}$, is the sum of this assumed rating, $\mu$, plus $\epsilon_{u,i}$, representing the independent errors for that distribution.
+
+```{r simple_average_1, echo=TRUE, eval=TRUE}
+# Determine overall average rating for all Nations in train set
+mu_hat <- mean(whr21$Happiness)
+```
+
+We average all Happiness scores to arrive at `r mu_hat` as the Happiness score to be assigned to each Nation. 
+
+```{r simple_average_2, echo=TRUE, eval=TRUE}
+# Calculate RMSE between each test set rating included and the overall average (mu_hat)
+RMSE_simple_average <- RMSE(whr21$Happiness, mu_hat)
+MSE_simple_average <- RMSE_simple_average^2
+```
+
+Furthermore, we calculate the RMSE for the Simple Average Method to be `r round(RMSE_simple_average,5)` and the MSE to be `r round(MSE_simple_average,5)`.  
+
+Having calculate the RMSE and knowing the Happiness for each Nation, we can now the predicted Happiness scores and graphically represent those against actuals.
+
+```{r simple_average_model, echo=FALSE, message=FALSE, warning=FALSE}
+# Determine predicted score by sum method and calculate the corresponding RMSE
+simple_average <- whr21 %>% mutate(pred_simple_average = Prosperity +
+                               Network + Wellbeing +
+                               Freedom + Generosity + 
+                               Corruption + 2.430, 
+                             RMSE = RMSE(Happiness, pred_simple_average))
+```
+
+```{r gg_plot_simple_average, echo=FALSE, message=FALSE, warning=FALSE, }
+pred_actual_simple_average <- as.data.frame(cbind(Prediction = whr21$Happiness, Actual = simple_average$pred_simple_average))
+gg_plot_simple_average <- ggplot(pred_actual_simple_average, aes(Actual, Prediction)) +
+  geom_point() + 
+  annotate("text", x = 6, y = 8, label = paste("RMSE = ", round(RMSE_simple_average,4))) +
+  geom_smooth (method = "lm", se = TRUE, color = "dodgerblue") +
+  theme_bw() + geom_abline() +
+  labs(title = "Simple Average Method", subtitle = "Happiness Score (Predicted vs Actual)", x = "Actual",
+       y = "Predicted") +
+  theme(plot.title = element_text(face = "bold", size = (15)), 
+        axis.title = element_text(size = (10)))
+gg_plot_simple_average
+```
+
+Being the "simplest" approach to creating a predictive model, the Simple Average Method sets the bar or standard against which all subsequent algorithms will be measured - unarguably a low bar.  The Simple Sum Methods yields an RMSE of `r round(RMSE_simple_average,5)` which means that a prediction from this model would be only within approximately 1.0 points from the actual measure which is not a particularly useful estimate and still above our Project Target of 1.0000.
+
+The Simple Average Method plot above demonstrates how widely the points are scattered around the goodness of fit line.  It also depicts a perfectly horizontal line reflecting our assumption for this model that all Nations have the same Happiness score.  
+
+Let's move on to our next "simple" prediction method.  
+
+#### Simple Sum Method
+
+The Simple Sum Method is akin to the Simple Average Method. Rather than taking the average of all Happiness scores as the score for each Nation however,  the Simple Sum Method assumes that the sum of the independent variables including the Ladder Score for Dystopia equals a Nation's Happiness score.  With this assumption in place, we can not predict the Happiness score.  
+
+```{r simple_sum_model_1, echo=TRUE, message=FALSE, warning=FALSE}
+# find  predicted score by sum method and calculate the corresponding RMSE
+simple_sum <- whr21 %>% mutate(pred_simple_sum = Prosperity +
+                               Network + Wellbeing +
+                               Freedom + Generosity + 
+                               Corruption + 2.430, 
+                             RMSE = RMSE(Happiness, pred_simple_sum))
+# Record RMSE for the simple sum model
+RMSE_simple_sum <- RMSE(simple_sum$Happiness, simple_sum$pred_simple_sum)
+MSE_simple_sum <- RMSE_simple_sum^2
+```
+
+
+```{r simple_sum_model_2, echo=FALSE, warning=FALSE, echo=FALSE}
+pred_actual_simple_sum <- as.data.frame(cbind(Prediction = simple_sum$Happiness, Actual = simple_sum$pred_simple_sum))
+gg_plot_simple_sum <- ggplot(pred_actual_simple_sum, aes(Actual, Prediction)) +
+  geom_point() + 
+  annotate("text", x = 4.5, y = 7, label = paste("RMSE = ", round(RMSE_simple_sum,4))) +
+  geom_smooth (method = "lm", se = TRUE, color = "dodgerblue") +
+  theme_bw() + geom_abline() +
+  labs(title = "Simple Sum Method", subtitle = "Happiness Score (Predicted vs Actual)", x = "Actual",
+       y = "Predicted") +
+  theme(plot.title = element_text(face = "bold", size = (15)), 
+        axis.title = element_text(size = (10)))
+gg_plot_simple_sum
+```
+The Simple Sum Method produces am RMSE that is about 50% better than the Simple Average Method.  We calculated the RMSEs for the Simple Average Method and the Simple Average Method using calculations based on the whole of the WHR dataset without having to split into training and testing sets.  The remaining linear and logistic regression models and and the somewhat more advanced non-linear models will us to split our data set into training and testing sets.  What's the best ratio for optimal performance?  
+
+#### What is the appropriate dataset split?
+
+How then do we then decide what the appropriate proportion or ratio to allocate to each subset?  Convention and literature suggest an appropriate split ratio between 70:30 to 90:10 with some caveats regarding very small and very large data sets.  We have a very small dataset in the WHR as  you may recall with only `r nrow(whr21)` observations (rows) and `r ncol(whr21)` variables (columns).  We can, however, test for a split that optimizes the RMSE or effectiveness of our algorithm. We accomplish this by calculating RMSE values (our effectiveness and accuracy measure) for a sequence of (relevant but not significant) numbers using a methodology from an earlier assignment.  The lowest value of RMSE can then be used to determine the optimal or lowest RMSE prediction.
+
+```{r best_split_calc, echo=TRUE, warning=FALSE}
+# Test for an "best" split of full data set (whr21)
+# First, we will create sequence of p values or spread to test
+ps <- (seq(from=0.20, to= 0.90, by=.005))
+# Calculate RMSEs for each value of p
+rmses <- sapply(ps, function(p){
+  train_index <- as.numeric(createDataPartition(whr21$Happiness, times=1, p=p, list=FALSE))
+  train_split <- whr21[train_index,]
+  test_split <- whr21[-train_index,]
+  gof <- glm(Happiness ~ Prosperity + Network + Wellbeing + Freedom + Generosity + Corruption, 
+             data = train_split)
+  test_split <- test_split %>% mutate(pred_score = predict.glm(gof, newdata=test_split))
+  RMSE(test_split$Happiness, test_split$pred_score)
+})
+# Capture the lowest value of RMSE for this split test
+low <- min(rmses)
+# Capture the split ratio between train and test subsets
+# `r x_values[which.min(rmses)]` : `r 1-x_values[which.min(rmses)]`
+p_train <- ps[which.min(rmses)]
+p_test <- 1-ps[which.min(rmses)]
+```
+
+From the basic plot below, the lowest value of RMSE achieved was `r low` yielding an optimal data split of `r p_train` : `r p_test`.  A few test runs of the following algorithms reveals that the higher we set the training set portion of the ration, the lower our RMSEs.  Unfortunately, raising the training portion reduces the test portion and leaves too little data to test.  As such and in light of the convention, we will set our split ratio at 70:30 (train_set : test_set).
+
+
+```{r optimal_RMSE, echo=TRUE, warning=FALSE, echo=FALSE, fig.cap="Optimal RMSE"}
+plot(ps, rmses, main = "Determine Lowest RMSE", xlab = "Values of p", ylab = "RMSE Values") +
+  abline(h = low, col = "red") +
+  abline(v = p_train, col = "red")
+```
+
+
+### Prepare Training and Testing Subsests from WHR at (70:30 ratio)
+
+To begin, we will use a slightly less cumbersome method found in the *caTools* package to split the WHR dataset into training and testing subsets. Our variables will remain the same: 
+1) Dependent variable is the Happiness score;
+2) Independent variables are Prosperity, Network, Wellbeing, Freedom, Generosity, and Corruption; and, 
+3) Factor / Category variables are Nation and Region
+
+```{r split_train_test_subsets, echo=TRUE, message = F, warning = F}
+# Split the dataset into subsets: train_set and test_set using *caTools*
+set.seed(1234)
+regression_subset <- whr21[3:9]
+split = sample.split(regression_subset$Happiness, SplitRatio = 0.7)
+train_set = subset(regression_subset, split==TRUE)
+test_set = subset(regression_subset, split==FALSE)
+```
+
+With our dataset split into training and testing subsets, we are not ready to begin training and testing our next seven (7) algorithms. Three of our models are various forms of the generalized linear regression model (generalized linear regression model, multiple liner regression model, and neural net with 0 hidden layers) and the remaining 4 are more advanced models (neural net with 2 hidden layers, support vector regression, decision tree, and random forest model).  Let's begin with the glm. 
+
+#### Generalized Linear Regression Model (glm)
+
+The generalized linear model (GLM) is a flexible generalization of ordinary linear regression that allows for response variables that have error distribution other than a normal distribution. The GLM generalizes linear regression by allowing the linear model to be related to the response variable through a link function and by allowing the magnitude of the variance of each measurement to be a function of its predicted value. 
+
+```{r glm_1, echo=TRUE, warning=FALSE, echo=FALSE}
+# Fit glm to train_set
+regressor_glm = glm(formula = Happiness ~ .,
+               data = train_set)
+```
+
+```{r glm_2, message = F, warning = F, echo=FALSE}
+# Predict and plot glm results from test_set
+y_pred_glm = predict(regressor_glm, newdata = test_set)
+pred_actual_glm <- as.data.frame(cbind(Prediction = y_pred_glm, Actual = test_set$Happiness))
+MSE_glm <- sum((test_set$Happiness - y_pred_glm)^2)/nrow(test_set)
+RMSE_glm <- sqrt(MSE_glm)
+gg_plot_glm <- ggplot(pred_actual_glm, aes(Actual, Prediction)) +
+  geom_point() + 
+  annotate("text", x = 4.5, y = 7, label = paste("RMSE = ", round(RMSE_glm,4))) +
+  geom_smooth (method = "lm", se = TRUE, color = "dodgerblue") +
+  theme_bw() + geom_abline() +
+  labs(title = "Generalized Linear Regression", subtitle = "Happiness Score (Predicted vs Actual)", x = "Actual",
+       y = "Predicted") +
+  theme(plot.title = element_text(face = "bold", size = (15)), 
+        axis.title = element_text(size = (10)))
+gg_plot_glm
+```
+
+
+#### Multiple Linear Regression Model (lm)
+
+In R as in statistics, using lm() is a special case of glm().  As mentioned above, glm() fits models following the form f(Y) = Xb + e. However, in glm both the function f(Y) (the 'link function') and the distribution of the error term e can be specified. Hence the name - 'generalized linear model'.  lm(), on the other hand, fits models following the form Y = Xb + e, where e is Normal (0 , s^2).
+
+If the same results are obtained using both lm() and glm() as in our analysis, it is because for glm(), f(Y) defaults to Y, and e defaults to Normal (0, s^2).  If the link function and error distribution aren't specified, the parameters that glm() uses produce the same effect as running lm().  
+
+```{r mlm_1, message = F, warning = F, echo=FALSE}
+# Fit mlm to train_set
+regressor_lm = lm(formula = Happiness ~ .,
+               data = train_set)
+```
+
+
+```{r mlm_2, message = F, warning = F, echo=FALSE}
+# Predict and plot mlm results from test_set
+y_pred_lm = predict(regressor_lm, newdata = test_set)
+pred_actual_lm <- as.data.frame(cbind(Prediction = y_pred_lm, Actual = test_set$Happiness))
+MSE_lm <- sum((test_set$Happiness - y_pred_lm)^2)/nrow(test_set)
+RMSE_lm <- sqrt(MSE_lm)
+gg_plot_lm<- ggplot(pred_actual_lm, aes(Actual, Prediction )) +
+  geom_point() + 
+  annotate("text", x = 4.5, y = 7, label = paste("RMSE = ", round(RMSE_lm,4))) +
+  geom_smooth (method = "lm", se = TRUE, color = "dodgerblue") +
+  theme_bw() + geom_abline() +
+  labs(title = "Multiple Linear Regression", subtitle = "Happiness Score (Predicted vs Actual)", x = "Actual",
+       y = "Predicted") +
+  theme(plot.title = element_text(face = "bold", size = (15)), 
+        axis.title = element_text(size = (10)))
+gg_plot_lm
+```
+
+#### Support Vector Regression Model (svm)
+
+In machine learning, support vector machines (svm) are supervised learning models with associated learning algorithms that analyze data used for classification and regression analysis. While we use svm here for regression and prediction analysis, they are mostly used in classification problems.
+
+```{r svr_1, message = F, warning = F, echo=FALSE}
+# Fit svr/svm to the regression_subset
+library(e1071)
+regressor_svr = svm(formula = Happiness ~ .,
+                data = regression_subset,
+                type = 'eps-regression',
+                kernel = 'radial')
+```
+
+```{r svr_2, message = F, warning = F, echo=FALSE}
+# Predict and plot svr/svm results from test_set
+y_pred_svr = predict(regressor_svr,  newdata = test_set)
+pred_actual_svr <- as.data.frame(cbind(Prediction = y_pred_svr, Actual = test_set$Happiness))
+pred_actual_lm_vs_svr <- cbind(Prediction.lm = y_pred_lm, Prediction.svr = y_pred_svr, Actual = test_set$Happiness)
+MSE_svr <- sum((test_set$Happiness - y_pred_svr)^2)/nrow(test_set)
+RMSE_svr <- sqrt(MSE_svr)
+gg_plot_svr <- ggplot(pred_actual_svr, aes(Actual, Prediction )) +
+  geom_point() + 
+  annotate("text", x = 4.5, y = 7, label = paste("RMSE = ", round(RMSE_svr,4))) +
+  geom_smooth (method = "lm", se = TRUE, color = "dodgerblue") +
+  theme_bw() + geom_abline() +
+  labs(title = "Support Vector Regression", subtitle = "Happiness Score (Predicted vs Actual)", x = "Actual",
+       y = "Predicted") +
+  theme(plot.title = element_text(face = "bold", size = (15)), 
+        axis.title = element_text(size = (10)))
+gg_plot_svr
+```
+
+
+
+#### Decision Tree Regression Model (rpart) 
+
+Recursive partitioning is a fundamental tool in data science. It helps us explore the structure of a set of data, while developing easy to visualize decision rules for predicting a categorical (classification tree) or continuous (regression tree) outcome or CART for short..  Classification and regression trees can generated through the *rpart package*. Decision Trees are versatile Machine Learning algorithm that can perform both classification and regression tasks. They are very powerful algorithms, capable of fitting complex datasets which is how we use the tool here.  
+
+```{r dt_1, message = F, warning = F, echo=FALSE}
+# Fit dt to the regression_subset
+library(rpart)
+regressor_dt = rpart(formula = Happiness ~ .,
+                  data = regression_subset,
+                  control = rpart.control(minsplit = 10))
+```
+
+```{r dt_2, message = F, warning = F, echo=FALSE}
+# Predict and plot dt results from test_set
+y_pred_dt = predict(regressor_dt, newdata = test_set)
+pred_actual_dt <- as.data.frame(cbind(Prediction = y_pred_dt, Actual = test_set$Happiness))
+MSE_dt <- sum((test_set$Happiness - y_pred_dt )^2)/nrow(test_set)
+RMSE_dt <- sqrt(MSE_dt)
+gg_plot_dt <- ggplot(pred_actual_dt, aes(Actual, Prediction )) +
+  geom_point() + 
+  annotate("text", x = 4.5, y = 7, label = paste("RMSE = ", round(RMSE_dt,4))) +
+  geom_smooth (method = "lm", se = TRUE, color = "dodgerblue") +
+  theme_bw() + geom_abline() +
+  labs(title = "Decision Tree Regression", subtitle = "Happiness Score (Predicted vs Actual)", x = "Actual",
+       y = "Predicted") +
+  theme(plot.title = element_text(face = "bold", size = (15)), 
+        axis.title = element_text(size = (10)))
+gg_plot_dt
+```
+
+It seems that Decision Tree Regression is not an excellent choice for this dataset.
+Let's see the tree.
+
+```{r dt_3, message = F, warning = F, echo=FALSE}
+# Plot decision tree 
+library(rpart.plot)
+prp(regressor_dt)
+```
+
+#### Random Forest Regression Model (randomForest)
+
+Decision trees are fundamental components of random forests.  We use Breiman and Cutler's random forest approach as implemented via the randomForest package in R.
+
+```{r rf_1, message = F, warning = F, echo=FALSE}
+# Fit dt to regression subset
+library(randomForest)
+set.seed(1234)
+regressor_rf = randomForest(x = regression_subset[-1],
+                         y = regression_subset$Happiness,
+                         ntree = 250)
+```
+
+```{r rf_2, message = F, warning = F, echo=FALSE}
+# Predict and plot rf results from test_set
+y_pred_rf = predict(regressor_rf, newdata = test_set)
+pred_actual_rf <- as.data.frame(cbind(Prediction = y_pred_rf, Actual = test_set$Happiness))
+MSE_rf <- sum((test_set$Happiness - y_pred_rf )^2)/nrow(test_set)
+RMSE_rf <- sqrt(MSE_rf)
+gg_plot_rf <- ggplot(pred_actual_rf, aes(Actual, Prediction )) +
+  geom_point() +
+  annotate("text", x = 4.5, y = 7,label = paste("RMSE = ", round(RMSE_rf,4))) +
+  geom_smooth (method = "lm", se = TRUE, color = "dodgerblue") +
+  theme_bw() + geom_abline() +
+  labs(title = "Random Forest Regression", subtitle = "Happiness Score (Predicted vs Actual)", x = "Actual",
+       y = "Predicted") +
+  theme(plot.title = element_text(face = "bold", size = (15)), 
+        axis.title = element_text(size = (10)))
+gg_plot_rf
+```
+
+#### Neural Net Model with Zero (0) Hidden Layers (neuralnet)
+
+Neural Network (or Artificial Neural Network) has the ability to learn by examples. ANN is an information processing model inspired by the biological neuron system. It is composed of a large number of highly interconnected processing elements known as neurons to solve problems. It follows the non-linear path and processes information in parallel throughout the nodes. A neural network is a complex adaptive system. Adaptive means it has the ability to change its internal structure by adjusting weights of inputs.  The number of neurons is defined by the number of hidden layers assigned in R.  We provide two example here.  One example with 0 hidden layers which causes the results to be very similar to the the linear model results (glm and lm) and another example with 2 hidden layers which produces a similar result as well.  Perhaps the linear and normally distributed nature of our data set makes the neural network approach too complex and less effective than alternative algorithms like SVM, Decision Tree, and regression.  
+
+
+```{r nn0_1, message = F, warning = F, echo=FALSE}
+# Fit nn with 0 hidden layers to the dataset
+library(neuralnet)
+nn0 <- neuralnet(Happiness ~ Prosperity + Network + Wellbeing + Freedom + Generosity + Corruption, data=train_set,hidden=0, linear.output=TRUE,)
+# Plot the neural net (diagram)
+plot(nn0, rep = "best")
+```
+
+```{r nn0_2, message = F, warning = F, echo=FALSE}
+# Predict and plot nn0
+pred_nn0_list <- neuralnet::compute(nn0,test_set[,2:7])
+pred_actual_nn0 <- as.data.frame(cbind(Prediction = pred_nn0_list$net.result, Actual = test_set$Happiness))
+MSE_nn0 <- sum((test_set$Happiness - pred_nn0_list$net.result)^2)/nrow(test_set)
+RMSE_nn0 <- sqrt(MSE_nn0)
+gg_plot_nn0 <- ggplot(pred_actual_nn0, aes(Actual, V1 )) +
+  geom_point() + 
+  annotate("text", x = 4.5, y = 7, label = paste("RMSE = ", round(RMSE_nn0,4))) +
+  geom_smooth (method = "lm", se = TRUE, color = "dodgerblue") +
+  theme_bw() + geom_abline() +
+  labs(title = "Neural Net - No Hidden Layers", subtitle = "Happiness Score (Predicted vs Actual)", x = "Actual",
+       y = "Predicted") +
+  theme(plot.title = element_text(face = "bold", size = (15)), 
+      axis.title = element_text(size = (10)))
+gg_plot_nn0
+```    
+
+
+#### Neural Net Model with Two (2) Hiddeen Layers (neuralnet) 
+
+```{r nn2_1, message = F, warning = F, echo=FALSE}
+# Fitting nn with 2 hidden layers to train_set
+library(neuralnet)
+nn <- neuralnet(Happiness ~ Prosperity + Network + Wellbeing + Freedom + Generosity + Corruption, data=train_set,hidden=2, linear.output=TRUE)
+# Plot the neuralnet (2 hidden layers)
+plot(nn, rep = "best")
+```
+
+```{r nn2_2, message = F, warning = F, echo=FALSE}
+# Predict and plot nn2 from test_set
+pred_nn_list <- neuralnet::compute(nn,test_set[,2:7])
+pred_actual_nn <- as.data.frame(cbind(Prediction = pred_nn_list$net.result, Actual = test_set$Happiness))
+MSE_nn <- sum((test_set$Happiness - pred_nn_list$net.result)^2)/nrow(test_set)
+RMSE_nn <- sqrt(MSE_nn)
+gg_plot_nn <- ggplot(pred_actual_nn, aes(Actual, V1 )) +
+  geom_point() + 
+  annotate("text", x = 4.5, y = 7, label = paste("RMSE = ", round(RMSE_nn,4))) +
+  geom_smooth (method = "lm", se = TRUE, color = "dodgerblue") +
+  theme_bw() + geom_abline() +
+  labs(title = "Neural Net - 2 Hidden Layers", subtitle = "Happiness Score (Predicted vs Actual)", x = "Actual",
+       y = "Predicted") +
+  theme(plot.title = element_text(face = "bold", size = (15)), 
+      axis.title = element_text(size = (10)))
+gg_plot_nn
+```    
+Neural networks are more flexible and can be used with both regression and classification problems. Neural networks are good for the nonlinear dataset with a large number of inputs such as images. Neural networks can work with any number of inputs and layers. Neural networks have the numerical strength that can perform jobs in parallel. perhaps the linear and normally distributed nature of our data set makes the neural network approach too complex and less effective than alternative algorithms like SVM, Decision Tree, and regression.  
+
+
+```{r collect_rmse_mse, message = F, warning = F, echo=FALSE}
+MSE_glm <- sum((test_set$Happiness - y_pred_glm)^2)/nrow(test_set)
+RMSE_glm <- sqrt(MSE_glm)
+MSE_lm <- sum((test_set$Happiness - y_pred_lm)^2)/nrow(test_set)
+RMSE_lm <- sqrt(MSE_lm)
+MSE_nn0 <- sum((test_set$Happiness - pred_nn0_list$net.result)^2)/nrow(test_set)
+RMSE_nn0 <- sqrt(MSE_nn0)
+  
+MSE_nn <- sum((test_set$Happiness - pred_nn_list$net.result)^2)/nrow(test_set)
+RMSE_nn <- sqrt(MSE_nn)
+MSE_svr <- sum((test_set$Happiness - y_pred_svr)^2)/nrow(test_set)
+RMSE_svr <- sqrt(MSE_svr)
+MSE_dt <- sum((test_set$Happiness - y_pred_dt )^2)/nrow(test_set)
+RMSE_dt <- sqrt(MSE_dt)
+MSE_rf <- sum((test_set$Happiness - y_pred_rf )^2)/nrow(test_set)
+RMSE_rf <- sqrt(MSE_rf)
+```
+
+\newpage
+# Results
+
+We have arranged the results of each method of actual versus predicted values from each of the different machine learning algorithms developed, trained, and tested as part of this exercise.  The results are arranged in Figure X  below from the least accurate (Simple Average Method) to the most accurate (Random Forest Method).  
+  
+
+**Actual versus predicted for different machine learning algorithms**  
+Graphic grid view
+
+```{r results_grid, message = F, warning = F, fig.height=9, fig.width=11, fig.cap="Results Grid"}
+ggarrange(gg_plot_simple_average, gg_plot_simple_sum, gg_plot_nn0, gg_plot_glm, gg_plot_lm, gg_plot_nn, gg_plot_dt, gg_plot_svr, gg_plot_rf, ncol = 3, nrow = 3)
+```
+
+
+```{r results_table, eval=TRUE, fig.cap="Tabulated Results"}
+# Create rmse results table including project goal of target RMSE = 1.00000
+rmse_target <- 1.000000
+rmse_results <- data.frame(Method = "Project Target", RMSE = "1.00000", Gap = "-")
+rmse_results %>%
+  rbind(c("Simple Average", round(RMSE_simple_average,5), round(RMSE_simple_average-rmse_target,5))) %>%
+  rbind(c("Simple Sum", round(RMSE_simple_sum, 5), round(RMSE_simple_sum-rmse_target, 5))) %>%
+  rbind(c("Neural Net 0 Hidden Values ", round(RMSE_nn0, 5), round(RMSE_nn0-rmse_target, 5))) %>%
+  rbind(c("Generalized Linear Model ", round(RMSE_glm, 5), round(RMSE_glm-rmse_target, 5))) %>%
+  rbind(c("Multiple Linear Model", round(RMSE_lm, 5), round(RMSE_lm-rmse_target, 5))) %>%
+  rbind(c("Neural Net 2 Hidden Values ", round(RMSE_nn, 5), round(RMSE_nn-rmse_target, 5))) %>%
+  rbind(c("Decision Tree", round(RMSE_dt, 5), round(RMSE_dt-rmse_target, 5))) %>%
+  rbind(c("Support Vector Regressison", round(RMSE_svr, 5), round(RMSE_svr-rmse_target, 5))) %>%
+  rbind(c("Random Forest", round(RMSE_rf, 5), round(RMSE_rf-rmse_target, 5))) %>%
+  kable(caption = "Results Table - Target Definition", align = 'lrr', booktabs = T, format = "latex") %>%
+  #kable_styling(full_width = FALSE, position = "center", latex_options = c("striped", "H"))
+  kable_styling(full_width = FALSE, latex_options = c("striped","H")) %>%
+  row_spec(10, bold = T, color = "white", background = "red")
+  
+```
+
+While decision trees are fundamental components of random forests, random forests far outperformed the decision tree methods.  Random forests are among the most potent Machine Learning algorithms available today. Random forests improve predictive accuracy by generating a large number of bootstrapped trees (based on random samples of variables), classifying a case using each tree in this new "forest", and deciding a final predicted outcome by combining the results across all of the trees (an average in regression, a majority vote in classification). Generalized Linear Regression, multiple Linear regression, neural net(s), and SVR were distant competitors.
+
+As the results demonstrate, the Random Forest method far outperformed other methods in predicting Happiness scores from the WHR dataset.  
+
+
+# Conclusion
+
+This report was designed to explore the use of machine learning algorithms and their ability to predict a Nation's Happiness Score after being trained using a relatively small World Happiness Report dataset.  In short, we developed, trained, and tested nine (9) machine learning algorithms from the simplest forms of averaging and summing known results to the more complex forms of predicting a categorical (classification tree) or continuous (regression tree) outcome (CART) like Random Forests. The results are remarkable in terms of the dramatic range in the accuracy of the models' prediction (RMSEs).  
+
+The two primary limitations for the present study are first the relatively small sample size with fewer than 150 observations and the fact that the underlying dataset is limited to a single year.  Future work on this or a similar project could include expanding the Happiness measure to include individuals rather than nations, perhaps a longitudinal approach to including multiple years of data in a single dataset, and possibly comparing these results to those of more commonly available employee engagement surveys. 
